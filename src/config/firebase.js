@@ -1,18 +1,18 @@
 import { initializeApp } from "firebase/app";
-import dotenv from "dotenv";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-dotenv.config();
-console.log(process.env.APIKEY_FIREBASE);
 const firebaseConfig = {
-  apiKey: process.env.APIKEY_FIREBASE,
-  authDomain: "chatapp-a7c78.firebaseapp.com",
-  projectId: "chatapp-a7c78",
-  storageBucket: "chatapp-a7c78.appspot.com",
-  messagingSenderId: "674902884786",
-  appId: "1:674902884786:web:f7570bea26cd0f7c52e4ab",
+  apiKey: "AIzaSyDoaJK7Ww5_bjJRrLG-4HcrSOKkurFhnVM",
+  authDomain: "appchat-a54bf.firebaseapp.com",
+  databaseURL:
+    "https://appchat-a54bf-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "appchat-a54bf",
+  storageBucket: "appchat-a54bf.appspot.com",
+  messagingSenderId: "385451519296",
+  appId: "1:385451519296:web:89baaaa881929549549ea5",
+  measurementId: "G-ZMG509KF7D",
 };
 
 // Initialize Firebase
