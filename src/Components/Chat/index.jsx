@@ -9,15 +9,36 @@ import cameraIcon from "../../Access/Img/camera.png";
 import micIcon from "../../Access/Img/mic.png";
 import EmojiPicker from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../config/firebase";
+import { useChatStore } from "../../StateCenter/chat.store";
 
 function Chat() {
   const [openFormEmoji, setOpenFormEmoji] = useState(false);
   const [text, setText] = useState("");
+  const [messages, setMessages] = useState([]);
   const endRef = useRef(null);
+  const { chatId } = useChatStore();
+
+  useEffect(() => {
+    console.log("🚀 ~ Chat ~ chatId:", chatId);
+  }, [chatId]);
 
   useEffect(() => {
     endRef?.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
+
+  useEffect(() => {
+    let unSub;
+    if (chatId) {
+      unSub = onSnapshot(doc(db, "chats", chatId), (res) => {
+        setMessages(res.data());
+      });
+    }
+    return () => {
+      unSub();
+    };
+  }, [chatId]);
 
   return (
     <div id="chat">

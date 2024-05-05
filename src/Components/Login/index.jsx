@@ -2,7 +2,10 @@ import { useState } from "react";
 import avatarIcon from "../../Access/Img/avatar.png";
 import "./style.scss";
 import { toast } from "react-toastify";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth, db } from "../../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import upload from "../../config/upload";
@@ -24,14 +27,20 @@ function Login() {
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const { email, password } = Object.fromEntries(formData);
-    console.log("🚀 ~ handleLogin ~ password:", password);
-    console.log("🚀 ~ handleLogin ~ email:", email);
-
-    toast.success("integate successfully ...");
+    setLoading(true);
+    try {
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      console.log("🚀 ~ handleLogin ~ res:", res);
+      toast.success("integate successfully ...");
+    } catch (error) {
+      toast.warning("Something went wrong " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async (e) => {

@@ -2,6 +2,7 @@ import "./detail.scss";
 import avatarIcon from "../../Access/Img/avatar.png";
 import arrowUpIcon from "../../Access/Img/arrowUp.png";
 import downloadIcon from "../../Access/Img/download.png";
+import { auth } from "../../config/firebase";
 
 function Detail() {
   return (
@@ -46,6 +47,7 @@ function Detail() {
           </div>
         </div>
         <button>Block user</button>
+        <button onClick={() => auth.signOut()}>Logout</button>
       </div>
     </div>
   );
