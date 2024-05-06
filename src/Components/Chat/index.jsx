@@ -9,20 +9,25 @@ import cameraIcon from "../../Access/Img/camera.png";
 import micIcon from "../../Access/Img/mic.png";
 import EmojiPicker from "emoji-picker-react";
 import { useEffect, useRef, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import {
+  arrayUnion,
+  doc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useChatStore } from "../../StateCenter/chat.store";
+import { useUserStore } from "../../StateCenter/user.store";
 
 function Chat() {
   const [openFormEmoji, setOpenFormEmoji] = useState(false);
   const [text, setText] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [chat, setChat] = useState([]);
   const endRef = useRef(null);
   const { chatId } = useChatStore();
-
-  useEffect(() => {
-    console.log("🚀 ~ Chat ~ chatId:", chatId);
-  }, [chatId]);
+  const { user_current } = useUserStore();
+  const { user } = useChatStore();
 
   useEffect(() => {
     endRef?.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,13 +37,51 @@ function Chat() {
     let unSub;
     if (chatId) {
       unSub = onSnapshot(doc(db, "chats", chatId), (res) => {
-        setMessages(res.data());
+        setChat(res.data());
       });
     }
     return () => {
       unSub();
     };
   }, [chatId]);
+
+  const handleSend = async () => {
+    if (!text) return;
+
+    try {
+      await updateDoc(doc(db, "chats", chatId), {
+        messages: arrayUnion({
+          senderId: user_current.id,
+          text,
+          createdAt: new Date(),
+        }),
+      });
+
+      const userIDs = [user_current.id, user.id];
+      userIDs.forEach(async (id) => {
+        const userChatRef = doc(db, "userchats", id);
+        const userChatsSnapshot = await getDoc(userChatRef);
+
+        if (userChatsSnapshot.exists()) {
+          const userChatsData = userChatsSnapshot.data();
+          const chatIndex = userChatsData.chats.findIndex(
+            (c) => c.chatId === chatId
+          );
+
+          userChatsData.chats[chatIndex].lastMessage = text;
+          userChatsData.chats[chatIndex].isSeen =
+            id === user_current ? true : false;
+          userChatsData.chats[chatIndex].updatedAt = Date.now();
+
+          await updateDoc(userChatRef, {
+            chats: userChatsData.chats,
+          });
+        }
+      });
+    } catch (error) {
+      console.log("🚀 ~ handleSend ~ error:", error);
+    }
+  };
 
   return (
     <div id="chat">
@@ -60,61 +103,17 @@ function Chat() {
 
       {/* SESSION CENTER */}
       <div className="center">
-        <div className="message own">
-          <img src={avatarIcon} alt="" />
-          <div className="texts">
-            <p>
-              sdflsjdflsjdf sdfsdfsdfsdfsdfs
-              ssdffffffffffffffffffffffffffffffffffffff
-              dfsdfljjjjjsdjlfffffffffffffffffffffffffffff sdfsdfsdf
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-        <div className="message ">
-          <div className="texts">
-            <p>
-              sdflsjdflsjdf sdfsdfsdfsdfsdfs
-              ssdffffffffffffffffffffffffffffffffffffff
-              dfsdfljjjjjsdjlfffffffffffffffffffffffffffff sdfsdfsdf
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-        <div className="message own">
-          <img src={avatarIcon} alt="" />
-          <div className="texts">
-            <p>
-              sdflsjdflsjdf sdfsdfsdfsdfsdfs
-              ssdffffffffffffffffffffffffffffffffffffff
-              dfsdfljjjjjsdjlfffffffffffffffffffffffffffff sdfsdfsdf
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-        <div className="message own">
-          <img src={avatarIcon} alt="" />
-          <div className="texts">
-            <p>
-              sdflsjdflsjdf sdfsdfsdfsdfsdfs
-              ssdffffffffffffffffffffffffffffffffffffff
-              dfsdfljjjjjsdjlfffffffffffffffffffffffffffff sdfsdfsdf
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-        <div className="message own">
-          <img src={avatarIcon} alt="" />
-          <div className="texts">
-            <img src={cameraIcon} alt="" />
-            <p>
-              sdflsjdflsjdf sdfsdfsdfsdfsdfs
-              ssdffffffffffffffffffffffffffffffffffffff
-              dfsdfljjjjjsdjlfffffffffffffffffffffffffffff sdfsdfsdf
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
+        {chat?.messages?.map((mess) => {
+          return (
+            <div className="message own" key={mess?.createAt}>
+              {mess.img && <img src={mess.img} alt="" />}
+              <div className="texts">
+                <p>{mess.text}</p>
+                {/* <span>1 min ago</span> */}
+              </div>
+            </div>
+          );
+        })}
         <div ref={endRef}></div>
       </div>
 
@@ -149,7 +148,9 @@ function Chat() {
             />
           </div>
         </div>
-        <div className="sendButton">Send</div>
+        <div className="sendButton" onClick={handleSend}>
+          Send
+        </div>
       </div>
     </div>
   );
