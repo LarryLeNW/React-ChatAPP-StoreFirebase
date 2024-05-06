@@ -5,7 +5,7 @@ import List from "./Components/List";
 import Login from "./Components/Login";
 import Notification from "./Components/Notification";
 import { useEffect } from "react";
-import { auth } from "./config/firebase";
+import { auth } from "./config/firebase/init";
 import { useUserStore } from "./StateCenter/user.store";
 import { useChatStore } from "./StateCenter/chat.store";
 

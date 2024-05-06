@@ -16,22 +16,32 @@ import {
   onSnapshot,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { db } from "../../config/firebase/init";
 import { useChatStore } from "../../StateCenter/chat.store";
 import { useUserStore } from "../../StateCenter/user.store";
+import upload from "../../config/firebase/upload";
+import dayjs from "dayjs";
+import "dayjs/locale/en";
+// Optionally, you can import the 'fromNow' plugin for relative time calculation
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 function Chat() {
   const [openFormEmoji, setOpenFormEmoji] = useState(false);
-  const [text, setText] = useState("");
   const [chat, setChat] = useState([]);
-  const endRef = useRef(null);
+  const [text, setText] = useState("");
+  const [imgSend, setImgSend] = useState({
+    file: null,
+    url: "",
+  });
   const { chatId } = useChatStore();
   const { user_current } = useUserStore();
-  const { user } = useChatStore();
+  const { user, isCurrentUserBlocked, isReceiverBlocked } = useChatStore();
+  const endRef = useRef(null);
 
   useEffect(() => {
     endRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  }, [chat]);
 
   useEffect(() => {
     let unSub;
@@ -45,18 +55,34 @@ function Chat() {
     };
   }, [chatId]);
 
+  const handleSetImage = (e) => {
+    if (e.target.files[0]) {
+      setImgSend({
+        file: e.target.files[0],
+        url: URL.createObjectURL(e.target.files[0]),
+      });
+    }
+  };
+
   const handleSend = async () => {
-    if (!text) return;
+    if (!text && !imgSend.file) return;
+    let urlImg = null;
 
     try {
+      if (imgSend.file) {
+        urlImg = await upload(imgSend.file);
+      }
+
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: user_current.id,
-          text,
+          ...(text && { text: text }),
+          ...(urlImg && { img: urlImg }),
           createdAt: new Date(),
         }),
       });
 
+      // update chat isseen , lastmess for each user
       const userIDs = [user_current.id, user.id];
       userIDs.forEach(async (id) => {
         const userChatRef = doc(db, "userchats", id);
@@ -68,9 +94,9 @@ function Chat() {
             (c) => c.chatId === chatId
           );
 
-          userChatsData.chats[chatIndex].lastMessage = text;
+          userChatsData.chats[chatIndex].lastMessage = text || "Image...";
           userChatsData.chats[chatIndex].isSeen =
-            id === user_current ? true : false;
+            id === user_current.id ? true : false;
           userChatsData.chats[chatIndex].updatedAt = Date.now();
 
           await updateDoc(userChatRef, {
@@ -78,6 +104,13 @@ function Chat() {
           });
         }
       });
+
+      // reset state input send
+      setImgSend({
+        file: null,
+        url: "",
+      });
+      setText("");
     } catch (error) {
       console.log("🚀 ~ handleSend ~ error:", error);
     }
@@ -105,12 +138,24 @@ function Chat() {
       <div className="center">
         {chat?.messages?.map((mess) => {
           return (
-            <div className="message own" key={mess?.createAt}>
+            <div
+              className={`message ${
+                user_current.id == mess.senderId ? "own" : ""
+              }`}
+              key={mess?.createdAt}
+            >
               {mess.img && <img src={mess.img} alt="" />}
-              <div className="texts">
-                <p>{mess.text}</p>
-                {/* <span>1 min ago</span> */}
-              </div>
+              {mess.text && (
+                <div className="texts">
+                  <p>{mess.text}</p>
+                </div>
+              )}
+
+              <span>
+                {dayjs(
+                  new Date(mess.createdAt.seconds * 1000).toUTCString()
+                ).fromNow()}
+              </span>
             </div>
           );
         })}
@@ -120,15 +165,29 @@ function Chat() {
       {/* SESSION BOTTOM */}
       <div className="bottom">
         <div className="icons">
-          <img src={imgIcon} alt="imgIcon" />
+          <label htmlFor="sendFile">
+            <img src={imgIcon} alt="imgIcon" />
+          </label>
+          <input
+            id="sendFile"
+            type="file"
+            onChange={handleSetImage}
+            style={{ display: "none" }}
+            disabled={isCurrentUserBlocked || isReceiverBlocked}
+          />
           <img src={cameraIcon} alt="cameraIcon" />
           <img src={micIcon} alt="micIcon" />
         </div>
         <input
           type="text"
           value={text}
-          placeholder="Type a message..."
+          placeholder={
+            isCurrentUserBlocked || isReceiverBlocked
+              ? "You can't send message..."
+              : "Type a message..."
+          }
           onChange={(e) => setText(e.target.value)}
+          disabled={isCurrentUserBlocked || isReceiverBlocked}
         />
         <div className="emoji">
           <img
@@ -148,7 +207,11 @@ function Chat() {
             />
           </div>
         </div>
-        <div className="sendButton" onClick={handleSend}>
+        <div
+          className="sendButton"
+          onClick={handleSend}
+          disabled={isCurrentUserBlocked || isReceiverBlocked}
+        >
           Send
         </div>
       </div>

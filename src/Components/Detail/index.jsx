@@ -2,15 +2,36 @@ import "./detail.scss";
 import avatarIcon from "../../Access/Img/avatar.png";
 import arrowUpIcon from "../../Access/Img/arrowUp.png";
 import downloadIcon from "../../Access/Img/download.png";
-import { auth } from "../../config/firebase";
+import { auth, db } from "../../config/firebase/init";
+import { useUserStore } from "../../StateCenter/user.store";
+import { useChatStore } from "../../StateCenter/chat.store";
+import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { toast } from "react-toastify";
 
 function Detail() {
+  const { user_current } = useUserStore();
+  const { chatId, user, isCurrentUserBlocked, isReceiverBlocked, changeBlock } =
+    useChatStore();
+
+  const handleBlock = async () => {
+    if (!user) return;
+    try {
+      const userDocRef = doc(db, "users", user_current.id);
+      await updateDoc(userDocRef, {
+        blocked: isReceiverBlocked ? arrayRemove(user.id) : arrayUnion(user.id),
+      });
+      changeBlock();
+    } catch (error) {
+      toast.error(error?.message || "something went wrong ...");
+    }
+  };
+
   return (
     <div id="detail">
       <div className="user">
-        <img src={avatarIcon} alt="avatarIcon" />
-        <h2>LarryLe</h2>
-        <p>sOME THING some thing....</p>
+        <img src={user?.avatar || avatarIcon} alt="avatarIcon" />
+        <h2>{user?.username}</h2>
+        <p>{user?.email}</p>
       </div>
       <div className="info">
         <div className="option">
@@ -46,7 +67,13 @@ function Detail() {
             <img src={arrowUpIcon} alt="" />
           </div>
         </div>
-        <button>Block user</button>
+        <button onClick={handleBlock}>
+          {isCurrentUserBlocked
+            ? "You are blocked"
+            : isReceiverBlocked
+            ? "User blocked"
+            : "Block this User..."}
+        </button>
         <button onClick={() => auth.signOut()}>Logout</button>
       </div>
     </div>

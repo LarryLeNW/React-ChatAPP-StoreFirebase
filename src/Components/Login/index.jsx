@@ -6,7 +6,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { auth, db } from "../../config/firebase";
+import { auth, db } from "../../config/firebase/init";
 import { doc, setDoc } from "firebase/firestore";
 import upload from "../../config/upload";
 

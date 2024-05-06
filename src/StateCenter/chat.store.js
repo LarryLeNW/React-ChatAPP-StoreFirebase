@@ -1,6 +1,6 @@
 import { doc, getDoc } from "firebase/firestore";
 import { create } from "zustand";
-import { db } from "../config/firebase";
+import { db } from "../config/firebase/init";
 import { useUserStore } from "./user.store";
 
 export const useChatStore = create((set) => ({

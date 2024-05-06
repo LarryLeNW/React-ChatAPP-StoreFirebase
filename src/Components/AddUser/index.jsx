@@ -12,7 +12,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { db } from "../../config/firebase/init";
 import { useState } from "react";
 import { useUserStore } from "../../StateCenter/user.store";
 
