@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 import { auth, db } from "../../config/firebase/init";
 import { doc, setDoc } from "firebase/firestore";
-import upload from "../../config/upload";
+import upload from "../../config/firebase/upload";
 
 function Login() {
   const [avatar, setAvatar] = useState({
